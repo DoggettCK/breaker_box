@@ -13,11 +13,10 @@ defmodule BreakerBox do
   require Behave
   require Logger
 
-  alias BreakerConfiguration
   alias :fuse, as: Fuse
 
   @typep fuse_status ::
-           :ok
+           {:ok, breaker_name :: term}
            | {:error, {:breaker_tripped, breaker_name :: term}}
            | {:error, {:breaker_not_found, breaker_name :: term}}
   @typep ok_or_not_found :: :ok | {:error, {:breaker_not_found, breaker_name :: term}}
@@ -153,14 +152,8 @@ defmodule BreakerBox do
   {:error, {:breaker_tripped, breaker_name}}`.
   """
   @spec increment_error(breaker_name :: term) :: :ok
-  def increment_error(breaker_name, options \\ []) do
-    options = Keyword.put_new(options, :ignore_error, false)
-
-    if Keyword.get(options, :ignore_error) do
-      :ok
-    else
-      GenServer.call(__MODULE__, {:increment_error, breaker_name})
-    end
+  def increment_error(breaker_name) do
+    GenServer.call(__MODULE__, {:increment_error, breaker_name})
   end
 
   ### PRIVATE API
@@ -291,7 +284,6 @@ defmodule BreakerBox do
         breaker_module
         |> non_module_warning
         |> Logger.warn()
-        # TODO: on_warning callback
 
         state
 
@@ -337,7 +329,9 @@ defmodule BreakerBox do
 
   defp missing_behaviour_warning(breaker_module) do
     breaker_module
-    |> registration_failure_warning("it does not implement #{inspect(BreakerConfiguration)} behaviour")
+    |> registration_failure_warning(
+      "it does not implement #{inspect(BreakerConfiguration)} behaviour"
+    )
   end
 
   defp registration_failure_warning(breaker_module, reason) do

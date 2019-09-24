@@ -2,8 +2,6 @@ defmodule BreakerConfiguration do
   @moduledoc """
   Structure and behaviour for configuring circuit breakers.
   """
-  alias __MODULE__
-
   @default_max_failures 5
   @default_failure_window 1_000
   @default_reset_window 5_000
@@ -49,9 +47,6 @@ defmodule BreakerConfiguration do
   with the last configuration.
 
   ```
-  alias BreakerBox
-  alias BreakerConfiguration
-
   @impl true
   def registration do
     breaker_config =

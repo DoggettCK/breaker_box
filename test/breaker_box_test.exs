@@ -3,9 +3,6 @@ defmodule BreakerBoxTest do
 
   import ExUnit.CaptureLog
 
-  alias BreakerBox
-  alias BreakerConfiguration
-
   doctest BreakerBox
 
   @test_breaker_name "TestBreaker"
@@ -311,21 +308,6 @@ defmodule BreakerBoxTest do
 
       assert {:error, {:breaker_tripped, ^breaker_name}} = BreakerBox.status(breaker_name)
     end
-
-    test "does not trip a breaker if ignore_error is true" do
-      {breaker_name, %BreakerConfiguration{max_failures: failures} = breaker_config} =
-        StrictBreaker.registration()
-
-      assert :ok = BreakerBox.register(breaker_name, breaker_config)
-
-      1..(2 * failures)
-      |> Enum.each(fn _ ->
-        assert {:ok, ^breaker_name} = BreakerBox.status(breaker_name)
-        assert :ok = BreakerBox.increment_error(breaker_name, ignore_error: true)
-      end)
-
-      assert {:ok, ^breaker_name} = BreakerBox.status(breaker_name)
-    end
   end
 end
 
@@ -335,8 +317,6 @@ defmodule MisbehavingBreaker do
 end
 
 defmodule BehavingBreaker do
-  alias BreakerConfiguration
-
   @behaviour BreakerConfiguration
 
   @breaker_name "behaving_breaker"
@@ -352,8 +332,6 @@ defmodule BehavingBreaker do
 end
 
 defmodule StrictBreaker do
-  alias BreakerConfiguration
-
   @behaviour BreakerConfiguration
 
   @breaker_name "strict_breaker"
