@@ -41,8 +41,9 @@ defmodule BreakerBox.MixProject do
   defp elixirc_paths(_), do: ["lib"]
 
   defp description() do
-    # TODO: Description
-    ""
+    "`BreakerBox` is an implementation of the circuit breaker pattern, " <>
+      "wrapping the Fuse Erlang library with a supervised server for ease " <>
+      "of breaker configuration and management."
   end
 
   defp package() do

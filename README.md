@@ -1,4 +1,4 @@
-kerBox
+# BreakerBox
 
 [![Hex Version][hex-img]][hex] [![Hex Downloads][downloads-img]][downloads] [![License][license-img]][license]
 
@@ -118,6 +118,88 @@ Status of a breaker will be returned as one of:
  - `{:ok, breaker_name}`
  - `{:error, {:breaker_tripped, breaker_name}}`
  - `{:error, {:breaker_not_found, breaker_name}}`
+
+### Tell a breaker there has been an error
+Now that you have your breakers set up, how do you let them know there's a problem?
+```elixir
+BreakerBox.increment_error(breaker_name)
+```
+
+Unless your breaker has been set up to be super-sensitive, one error probably won't trip it.
+```elixir
+iex> Breaker.increment_error(BreakerOne)
+:ok
+iex> BreakerBox.status(BreakerOne)
+{:ok, BreakerOne}
+iex> 1..10 |> Enum.each(fn _ -> BreakerBox.increment_error(BreakerOne) end)
+:ok
+iex> BreakerBox.status(BreakerOne)
+{:error, {:breaker_tripped, BreakerOne}}
+
+# Wait 60 seconds or call BreakerBox.reset(BreakerOne)
+iex> BreakerBox.status(BreakerOne)
+{:ok, BreakerOne}
+```
+
+### Manually enabling/disabling/resetting a breaker
+By default, breakers that have been tripped will reset to untripped after the `reset_window` specified in your configuration. If you want to reset it sooner, for example in a test scenario, you can call `BreakerBox.reset(breaker_name)` to set it back to untripped.
+
+What if you know a particular external service is going to be down for awhile, and want to disable all traffic to it?
+```elixir
+iex> BreakerBox.disable(BreakerOne)
+:ok
+iex> BreakerBox.status()
+%{
+  BreakerOne => {:error, {:breaker_tripped, BreakerOne}},
+  BreakerTwo => {:ok, BreakerTwo}
+}
+
+# Wait as long as you want, it won't automatically reset
+iex> BreakerBox.status(BreakerOne)
+{:error, {:breaker_tripped, BreakerOne}}
+```
+
+Re-enabling it when you know or suspect the service is available again is just as simple.
+```elixir
+iex> BreakerBox.enable(BreakerOne)
+:ok
+iex> BreakerBox.status()
+%{
+  BreakerOne => {:ok, BreakerOne},
+  BreakerTwo => {:ok, BreakerTwo}
+}
+```
+
+### Tying it all together
+In this example, we're going to POST a request to an external service at `url`. If we get a valid `HTTPoison` response back in an `{:ok, response}` tuple, we'll return the response body to the caller, no matter what it was, but if it wasn't a `200 OK`, we'll tell the breaker there was an error. You may not want to be this strict if you're using a `GET` request with a `301 Moved Permanently` response, but for my usual use case, a non-200 means something bad's happening.
+
+If we specifically get an `HTTPoison.Error` struct back, usually in cases of a timeout or non-existent domain, increment the error there, too. If we got back that the breaker has already been tripped, we don't increment it again, but instead just pass back the error to be handled in the controller or fallback controller, where we'll typically create a `503 Service Unavailable` response to tell consumers of our API to try again later. Lastly, any other unexpected errors increment the error count and return.
+
+We just want to ensure specifically that we're not incrementing again when the breaker is already tripped, as we haven't actually made the call to the external service.
+
+```elixir
+{breaker_name, _} = BreakerOne.registration()
+
+with {:ok, ^breaker_name} <- BreakerBox.status(breaker_name),
+     {:ok, response} <- HTTPoison.post(url, body, headers, options) do
+  if response.status_code != 200 do
+    BreakerBox.increment_error(breaker_name)
+  end
+
+  {:ok, response.body}
+else
+  {:error, %HTTPoison.Error{}} = error ->
+    BreakerBox.increment_error(breaker_name)
+    error
+
+  {:error, {:breaker_tripped, ^breaker_name}} = error ->
+    error
+
+  other ->
+    BreakerBox.increment_error(breaker_name)
+    other
+end
+```
 
 ## Installation
 
