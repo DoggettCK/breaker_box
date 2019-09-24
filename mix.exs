@@ -30,7 +30,7 @@ defmodule BreakerBox.MixProject do
   defp deps do
     [
       {:behave, ">= 0.1.0"},
-      {:credo, "~> 0.10", override: true},
+      {:credo, "~> 0.10"},
       {:ex_doc, "~> 0.20", only: :dev, runtime: false},
       {:fuse, "~> 2.4"},
       {:mix_test_watch, "~> 0.5", only: :dev, runtime: false}
