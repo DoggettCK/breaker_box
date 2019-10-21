@@ -17,10 +17,10 @@
 ### Breaker configuration
 ```elixir
 breaker_config =
- %BreakerConfiguration{}
- |> BreakerConfiguration.trip_on_failure_number(5)
- |> BreakerConfiguration.within_minutes(1)
- |> BreakerConfiguration.reset_after_minutes(1)
+ %BreakerBox.BreakerConfiguration{}
+ |> BreakerBox.BreakerConfiguration.trip_on_failure_number(5)
+ |> BreakerBox.BreakerConfiguration.within_minutes(1)
+ |> BreakerBox.BreakerConfiguration.reset_after_minutes(1)
 ```
 
 `BreakerBox` is intended to be user-friendly for configuration, wrapping [Fuse's](https://github.com/jlouis/fuse) options in a way that's easier to understand.
@@ -29,7 +29,7 @@ For example, Fuse's configuration allows you to set the number of errors ***tole
 
 Both `within_*` and `after_*` methods have variants accepting minutes, seconds, or milliseconds.
 
-A default `%BreakerConfiguration{}` will trip on the 5th failure within 1 second, automatically resetting to untripped after 5 seconds.
+A default `%BreakerBox.BreakerConfiguration{}` will trip on the 5th failure within 1 second, automatically resetting to untripped after 5 seconds.
 
 ### Registering a breaker manually
 ```elixir
@@ -41,21 +41,21 @@ Breakers must be registered with a unique name and configuration. Re-registering
 Names can be strings, atoms, or for ease of use in automatic registration, module names.
 
 ### Registering a breaker automatically
-`BreakerBox` is designed to be used with Elixir's supervision system, so we've provided a way to automatically register breakers at application startup, provided they implement a [Behaviour]([https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours](https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours)) from `BreakerConfiguration`.
+`BreakerBox` is designed to be used with Elixir's supervision system, so we've provided a way to automatically register breakers at application startup, provided they implement a [Behaviour]([https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours](https://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours)) from `BreakerBox.BreakerConfiguration`.
 
 ```elixir
 # breaker_one.ex
 defmodule BreakerOne do
-  @behaviour BreakerConfiguration
+  @behaviour BreakerBox.BreakerConfiguration
 
   @impl true
   def registration do
     # Fail after 3rd error in one minute, resetting after a minute
     breaker_config =
-      %BreakerConfiguration{}
-      |> BreakerConfiguration.trip_on_failure_number(3)
-      |> BreakerConfiguration.within_minutes(1)
-      |> BreakerConfiguration.reset_after_minutes(1)
+      %BreakerBox.BreakerConfiguration{}
+      |> BreakerBox.BreakerConfiguration.trip_on_failure_number(3)
+      |> BreakerBox.BreakerConfiguration.within_minutes(1)
+      |> BreakerBox.BreakerConfiguration.reset_after_minutes(1)
 
     {__MODULE__, breaker_config}
   end
@@ -83,18 +83,18 @@ defmodule YourApplication do
 end
 ```
 
-This will register the breaker using the module's own name as the breaker name, though as mentioned earlier, you can use whatever you want. `BreakerBox` uses the [Behave](https://hex.pm/packages/behave) package to ensure that whatever modules you pass in for automatic registration implement the `BreakerConfiguration` behaviour, warning you via `Logger` messages at startup if anything is misconfigured.
+This will register the breaker using the module's own name as the breaker name, though as mentioned earlier, you can use whatever you want. `BreakerBox` uses the [Behave](https://hex.pm/packages/behave) package to ensure that whatever modules you pass in for automatic registration implement the `BreakerBox.BreakerConfiguration` behaviour, warning you via `Logger` messages at startup if anything is misconfigured.
 
 ### View registered breakers
 ```elixir
 iex> BreakerBox.registered
 %{
-  BreakerOne => %BreakerConfiguration{
+  BreakerOne => %BreakerBox.BreakerConfiguration{
     failure_window: 60000,
     max_failures: 3,
     reset_window: 60000
   },
-  BreakerTwo => %BreakerConfiguration{
+  BreakerTwo => %BreakerBox.BreakerConfiguration{
     failure_window: 60000,
     max_failures: 5,
     reset_window: 30000

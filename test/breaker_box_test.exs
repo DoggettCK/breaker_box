@@ -3,6 +3,8 @@ defmodule BreakerBoxTest do
 
   import ExUnit.CaptureLog
 
+  alias BreakerBox.BreakerConfiguration
+
   doctest BreakerBox
 
   @test_breaker_name "TestBreaker"
@@ -264,7 +266,7 @@ defmodule BreakerBoxTest do
       expected_error_message =
         "BreakerBox: MisbehavingBreaker failed to register " <>
           "via init/1 because it does not implement " <>
-          "BreakerConfiguration behaviour"
+          "BreakerBox.BreakerConfiguration behaviour"
 
       assert capture_log(fn ->
                assert {:ok, %{}} = BreakerBox.init([MisbehavingBreaker])
@@ -317,6 +319,8 @@ defmodule MisbehavingBreaker do
 end
 
 defmodule BehavingBreaker do
+  alias BreakerBox.BreakerConfiguration
+
   @behaviour BreakerConfiguration
 
   @breaker_name "behaving_breaker"
@@ -332,6 +336,8 @@ defmodule BehavingBreaker do
 end
 
 defmodule StrictBreaker do
+  alias BreakerBox.BreakerConfiguration
+
   @behaviour BreakerConfiguration
 
   @breaker_name "strict_breaker"

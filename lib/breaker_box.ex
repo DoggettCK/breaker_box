@@ -6,7 +6,7 @@ defmodule BreakerBox do
   for querying the status of breakers, as well as enabling and disabling.
 
   Modules can be automatically registered if they implement the
-  `BreakerConfiguration` behaviour and are passed in to `start_link/1`.
+  `BreakerBox.BreakerConfiguration` behaviour and are passed in to `start_link/1`.
   """
   use GenServer
 
@@ -14,6 +14,7 @@ defmodule BreakerBox do
   require Logger
 
   alias :fuse, as: Fuse
+  alias BreakerBox.BreakerConfiguration
 
   @typep fuse_status ::
            {:ok, breaker_name :: term}
@@ -27,8 +28,8 @@ defmodule BreakerBox do
   to `init/1`, which will attempt to register the circuit breakers inside those
   modules.
 
-  Modules passed in are expected to implement the `BreakerConfiguration`
-  behaviour via `@behaviour BreakerConfiguration`, which will require them to
+  Modules passed in are expected to implement the `BreakerBox.BreakerConfiguration`
+  behaviour via `@behaviour BreakerBox.BreakerConfiguration`, which will require them to
   have a method named `registration/0` that returns a 2-tuple containing the
   breaker's name and configuration options.
   """
@@ -45,7 +46,7 @@ defmodule BreakerBox do
   @doc """
   Initializes the breaker box state, attempting to call `registration/0` on
   every argument passed in, assuming they're a module implementing the
-  `BreakerConfiguration` behaviour. If they are not a module, or don't
+  `BreakerBox.BreakerConfiguration` behaviour. If they are not a module, or don't
   implement the behaviour, a warning will be logged indicating how to fix the
   issue, and that item will be skipped.
   """
@@ -87,8 +88,8 @@ defmodule BreakerBox do
   end
 
   @doc """
-  Retrieve a map with breaker names as keys and `BreakerConfiguration` structs
-  as values.
+  Retrieve a map with breaker names as keys and
+  `BreakerBox.BreakerConfiguration` structs as values.
   """
   @spec registered() :: %{optional(term) => BreakerConfiguration.t()}
   def registered do

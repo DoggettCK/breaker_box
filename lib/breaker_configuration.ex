@@ -1,7 +1,9 @@
-defmodule BreakerConfiguration do
+defmodule BreakerBox.BreakerConfiguration do
   @moduledoc """
   Structure and behaviour for configuring circuit breakers.
   """
+  alias __MODULE__
+
   @default_max_failures 5
   @default_failure_window 1_000
   @default_reset_window 5_000
@@ -36,7 +38,8 @@ defmodule BreakerConfiguration do
   `Application.start`.
 
   Implementations should return a 2-tuple containing the name of the breaker
-  and the `BreakerConfiguration` options for registering the breaker.
+  and the `BreakerBox.BreakerConfiguration` options for registering the
+  breaker.
 
   This is only required and useful for breakers that should be automatically
   registered at startup. You can still manually call `BreakerBox.register/2` if
@@ -50,10 +53,10 @@ defmodule BreakerConfiguration do
   @impl true
   def registration do
     breaker_config =
-      %BreakerConfiguration{}
-      |> BreakerConfiguration.trip_on_failure_number(10) # Trip after 10th failure
-      |> BreakerConfiguration.within_seconds(1) # within 1 second
-      |> BreakerConfiguration.reset_after_seconds(5) # Automatically reset breaker after 5s
+      %BreakerBox.BreakerConfiguration{}
+      |> BreakerBox.BreakerConfiguration.trip_on_failure_number(10) # Trip after 10th failure
+      |> BreakerBox.BreakerConfiguration.within_seconds(1) # within 1 second
+      |> BreakerBox.BreakerConfiguration.reset_after_seconds(5) # Automatically reset breaker after 5s
 
     {__MODULE__, breaker_config}
   end
@@ -64,7 +67,8 @@ defmodule BreakerConfiguration do
   defguardp is_positive_integer(i) when is_integer(i) and i > 0
 
   @doc """
-  Converts our `BreakerConfiguration` struct type to the format Fuse expects.
+  Converts our `BreakerBox.BreakerConfiguration` struct type to the format Fuse
+  expects.
 
   NOTE: The underlying Fuse library treats maximum failures as the number of
   errors per time window the breaker can *tolerate*, which can lead to some
@@ -229,7 +233,7 @@ defmodule BreakerConfiguration do
   Get a friendlier representation of the breaker configuration.
 
   ## Examples
-      iex> %BreakerConfiguration{} |> BreakerConfiguration.human_readable()
+      iex> %BreakerBox.BreakerConfiguration{} |> BreakerBox.BreakerConfiguration.human_readable()
       "Trip on 5th error within 1000ms, resetting after 5000ms."
   """
   @spec human_readable(configuration :: BreakerConfiguration.t()) :: String.t()
