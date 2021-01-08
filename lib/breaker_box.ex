@@ -150,7 +150,7 @@ defmodule BreakerBox do
 
   If this causes the breaker to go over its error limit for its time window,
   the breaker will trip, and subsequent calls to `status/1` will show it as
-  {:error, {:breaker_tripped, breaker_name}}`.
+  `{:error, {:breaker_tripped, breaker_name}}`.
   """
   @spec increment_error(breaker_name :: term) :: :ok
   def increment_error(breaker_name) do
