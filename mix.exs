@@ -4,18 +4,17 @@ defmodule BreakerBox.MixProject do
   def project do
     [
       app: :breaker_box,
-      version: "0.2.0",
-      elixir: "~> 1.0",
-      start_permanent: Mix.env() == :prod,
-      elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
-      start_permanent: Mix.env() == :prod,
+      deps: deps(),
       description: description(),
-      name: "BreakerBox",
-      source_url: "https://github.com/DoggettCK/breaker_box",
-      package: package(),
       docs: docs(),
-      deps: deps()
+      elixir: "~> 1.0",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      name: "BreakerBox",
+      package: package(),
+      source_url: "https://github.com/DoggettCK/breaker_box",
+      start_permanent: Mix.env() == :prod,
+      version: "0.2.1"
     ]
   end
 
@@ -49,9 +48,9 @@ defmodule BreakerBox.MixProject do
   defp package() do
     [
       files: ["lib", "mix.exs", "README.md", "LICENSE.md"],
-      maintainers: ["Chris Doggett"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/DoggettCK/breaker_box"}
+      links: %{"GitHub" => "https://github.com/DoggettCK/breaker_box"},
+      maintainers: ["Chris Doggett"]
     ]
   end
 
