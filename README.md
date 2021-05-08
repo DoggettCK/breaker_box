@@ -208,7 +208,7 @@ end
 ```elixir
 def deps do
   [
-    {:breaker_box, "~> 0.1.0"}
+    {:breaker_box, "~> 0.2.0"}
   ]
 end
 ```
