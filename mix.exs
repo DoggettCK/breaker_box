@@ -14,7 +14,7 @@ defmodule BreakerBox.MixProject do
       package: package(),
       source_url: "https://github.com/DoggettCK/breaker_box",
       start_permanent: Mix.env() == :prod,
-      version: "0.2.1"
+      version: "0.3.0"
     ]
   end
 
