@@ -33,14 +33,14 @@ defmodule BreakerBox do
   have a method named `registration/0` that returns a 2-tuple containing the
   breaker's name and configuration options.
   """
-  @spec start_link(circuit_breaker_modules :: list(module)) ::
+  @spec start_link(circuit_breaker_modules :: list(module), process_name :: term) ::
           {:ok, pid}
           | {:error, {:already_started, pid}}
           | {:error, reason :: term}
           | {:stop, reason :: term}
           | :ignore
-  def start_link(circuit_breaker_modules) do
-    GenServer.start_link(__MODULE__, circuit_breaker_modules, name: __MODULE__)
+  def start_link(circuit_breaker_modules, process_name \\ __MODULE__) do
+    GenServer.start_link(__MODULE__, circuit_breaker_modules, name: {:global, process_name})
   end
 
   @doc """
@@ -65,51 +65,67 @@ defmodule BreakerBox do
   anything you want. Re-using a breaker name in multiple places will overwrite
   with the last configuration.
   """
-  @spec register(breaker_name :: term, breaker_options :: BreakerConfiguration.t()) ::
+  @spec register(
+          breaker_name :: term,
+          breaker_options :: BreakerConfiguration.t(),
+          process_name :: term
+        ) ::
           :ok | :reset | {:error, reason :: term}
-  def register(breaker_name, %BreakerConfiguration{} = breaker_options) do
-    GenServer.call(__MODULE__, {:register, breaker_name, breaker_options})
+  def register(breaker_name, breaker_options, process_name \\ __MODULE__)
+
+  def register(_breaker_name, %BreakerConfiguration{max_failures: max_failures}, _process_name)
+      when max_failures <= 1 do
+    {:error, "BreakerBox: max_failures must be greater than 1"}
+  end
+
+  def register(
+        breaker_name,
+        %BreakerConfiguration{} = breaker_options,
+        process_name
+      ) do
+    GenServer.call({:global, process_name}, {:register, breaker_name, breaker_options})
   end
 
   @doc """
   Remove a circuit breaker.
   """
-  @spec remove(breaker_name :: term) :: ok_or_not_found
-  def remove(breaker_name) do
-    GenServer.call(__MODULE__, {:remove, breaker_name})
+  @spec remove(breaker_name :: term, process_name :: term) :: ok_or_not_found
+  def remove(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:remove, breaker_name})
   end
 
   @doc """
   Retrieve the configuration for a breaker.
   """
-  @spec get_config(breaker_name :: term) :: {:ok, BreakerConfiguration.t()} | {:error, :not_found}
-  def get_config(breaker_name) do
-    GenServer.call(__MODULE__, {:get_config, breaker_name})
+  @spec get_config(breaker_name :: term, process_name :: term) ::
+          {:ok, BreakerConfiguration.t()} | {:error, :not_found}
+  def get_config(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:get_config, breaker_name})
   end
 
   @doc """
   Retrieve a map with breaker names as keys and
   `BreakerBox.BreakerConfiguration` structs as values.
   """
-  @spec registered() :: %{optional(term) => BreakerConfiguration.t()}
-  def registered do
-    GenServer.call(__MODULE__, :registered)
+  @spec registered(process_name :: term) :: %{optional(term) => BreakerConfiguration.t()}
+  def registered(process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, :registered)
   end
 
   @doc """
   Retrieve the status of a single breaker.
   """
-  @spec status(breaker_name :: term) :: fuse_status()
-  def status(breaker_name) do
-    GenServer.call(__MODULE__, {:status, breaker_name})
+  @spec status(breaker_name :: term, process_name :: term) :: fuse_status()
+  def status(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:status, breaker_name})
   end
 
   @doc """
   Retrieve the current status of all registered breakers.
   """
-  @spec status() :: %{optional(term) => fuse_status()}
-  def status do
-    GenServer.call(__MODULE__, :status)
+  @spec all_statuses(process_name :: term) :: %{optional(term) => fuse_status()}
+  def all_statuses(process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, :status)
   end
 
   @doc """
@@ -117,9 +133,9 @@ defmodule BreakerBox do
   have been blown via exceeding the error limit in a given time window, and
   will not re-enable a breaker that has been disabled via `disable/1`.
   """
-  @spec reset(breaker_name :: term) :: ok_or_not_found()
-  def reset(breaker_name) do
-    GenServer.call(__MODULE__, {:reset, breaker_name})
+  @spec reset(breaker_name :: term, process_name :: term) :: ok_or_not_found()
+  def reset(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:reset, breaker_name})
   end
 
   @doc """
@@ -130,9 +146,9 @@ defmodule BreakerBox do
 
   Will not be reset by calling `reset/1`.
   """
-  @spec disable(breaker_name :: term) :: :ok
-  def disable(breaker_name) do
-    GenServer.call(__MODULE__, {:disable, breaker_name})
+  @spec disable(breaker_name :: term, process_name :: term) :: :ok
+  def disable(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:disable, breaker_name})
   end
 
   @doc """
@@ -140,9 +156,9 @@ defmodule BreakerBox do
 
   Sets the breaker's status to `:ok`.
   """
-  @spec enable(breaker_name :: term) :: :ok
-  def enable(breaker_name) do
-    GenServer.call(__MODULE__, {:enable, breaker_name})
+  @spec enable(breaker_name :: term, process_name :: term) :: :ok
+  def enable(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:enable, breaker_name})
   end
 
   @doc """
@@ -152,9 +168,9 @@ defmodule BreakerBox do
   the breaker will trip, and subsequent calls to `status/1` will show it as
   `{:error, {:breaker_tripped, breaker_name}}`.
   """
-  @spec increment_error(breaker_name :: term) :: :ok
-  def increment_error(breaker_name) do
-    GenServer.call(__MODULE__, {:increment_error, breaker_name})
+  @spec increment_error(breaker_name :: term, process_name :: term) :: :ok
+  def increment_error(breaker_name, process_name \\ __MODULE__) do
+    GenServer.call({:global, process_name}, {:increment_error, breaker_name})
   end
 
   ### PRIVATE API
