@@ -14,7 +14,7 @@ defmodule BreakerBox.MixProject do
       package: package(),
       source_url: "https://github.com/DoggettCK/breaker_box",
       start_permanent: Mix.env() == :prod,
-      version: "0.3.0"
+      version: "0.3.1"
     ]
   end
 
@@ -29,10 +29,10 @@ defmodule BreakerBox.MixProject do
   defp deps do
     [
       {:behave, ">= 0.1.0"},
-      {:credo, "~> 0.10", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.20", only: :dev, runtime: false},
-      {:fuse, "~> 2.4"},
-      {:mix_test_watch, "~> 0.5", only: :dev, runtime: false}
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.27.3", only: :dev, runtime: false},
+      {:fuse, "~> 2.5"},
+      {:mix_test_watch, "~> 1.1", only: :dev, runtime: false}
     ]
   end
 
