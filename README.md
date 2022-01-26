@@ -31,6 +31,8 @@ Both `within_*` and `after_*` methods have variants accepting minutes, seconds, 
 
 A default `%BreakerBox.BreakerConfiguration{}` will trip on the 5th failure within 1 second, automatically resetting to untripped after 5 seconds.
 
+Due to a limitation of the underlying Fuse library, BreakerBox is unable to trip on the first error, so any calls to `trip_on_failure_number/2` must fail on at least the second error.
+
 ### Registering a breaker manually
 ```elixir
 BreakerBox.register("BreakerName", breaker_config)
@@ -169,6 +171,47 @@ iex> BreakerBox.status()
   BreakerTwo => {:ok, BreakerTwo}
 }
 ```
+
+### More than one breaker box
+
+If you have a need for more than one set of circuit breakers, and don't want any overlap, for example, if you want to run tests that may interfere with each other in parallel, you can specify a `process_name` when calling `BreakerBox`, as of version 0.4.0, which will default to the module name `BreakerBox`.
+
+```elixir
+iex> BreakerBox.start_link([])
+{:ok, #PID<0.233.0>}
+iex> BreakerBox.start_link([], :OtherPanel)
+{:ok, #PID<0.236.0>}
+iex> BreakerBox.register("Breaker1", %BreakerBox.BreakerConfiguration{})
+:ok
+iex> BreakerBox.register("OtherPanelBreaker", %BreakerBox.BreakerConfiguration{}, :OtherPanel)
+:ok
+iex> BreakerBox.registered
+%{
+  "Breaker1" => %BreakerBox.BreakerConfiguration{
+    failure_window: 1000,
+    max_failures: 5,
+    reset_window: 5000
+  }
+}
+iex> BreakerBox.registered(:OtherPanel)
+%{
+  "OtherPanelBreaker" => %BreakerBox.BreakerConfiguration{
+    failure_window: 1000,
+    max_failures: 5,
+    reset_window: 5000
+  }
+}
+iex> BreakerBox.status("Breaker1")
+{:ok, "Breaker1"}
+iex> BreakerBox.status("Breaker1", :OtherPanel)
+{:error, {:breaker_not_found, "Breaker1"}}
+iex> BreakerBox.status("OtherBreaker")         
+{:error, {:breaker_not_found, "OtherBreaker"}}
+iex> BreakerBox.status("OtherBreaker", :OtherPanel)
+{:ok, "OtherBreaker"}
+```
+
+Behind the scenes, `Module.concat/2` is used to make a unique name for the breaker name for the underlying Fuse library, since otherwise it would allow the same name in two different breaker boxes to overwrite each other.
 
 ### Tying it all together
 In this example, we're going to POST a request to an external service at `url`. If we get a valid `HTTPoison` response back in an `{:ok, response}` tuple, we'll return the response body to the caller, no matter what it was, but if it wasn't a `200 OK`, we'll tell the breaker there was an error. You may not want to be this strict if you're using a `GET` request with a `301 Moved Permanently` response, but for my usual use case, a non-200 means something bad's happening.
