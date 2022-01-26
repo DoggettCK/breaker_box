@@ -6,7 +6,7 @@ defmodule BreakerBox do
   for querying the status of breakers, as well as enabling and disabling.
 
   Modules can be automatically registered if they implement the
-  `BreakerBox.BreakerConfiguration` behaviour and are passed in to `start_link/1`.
+  `BreakerBox.BreakerConfiguration` behaviour and are passed in to `start_link/2`.
   """
   use GenServer
 
@@ -40,7 +40,7 @@ defmodule BreakerBox do
           | {:stop, reason :: term}
           | :ignore
   def start_link(circuit_breaker_modules, process_name \\ __MODULE__) do
-    GenServer.start_link(__MODULE__, circuit_breaker_modules, name: {:global, process_name})
+    GenServer.start_link(__MODULE__, circuit_breaker_modules, name: process_name)
   end
 
   @doc """
@@ -83,7 +83,7 @@ defmodule BreakerBox do
         %BreakerConfiguration{} = breaker_options,
         process_name
       ) do
-    GenServer.call({:global, process_name}, {:register, breaker_name, breaker_options})
+    GenServer.call(process_name, {:register, breaker_name, breaker_options})
   end
 
   @doc """
@@ -91,7 +91,7 @@ defmodule BreakerBox do
   """
   @spec remove(breaker_name :: term, process_name :: term) :: ok_or_not_found
   def remove(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:remove, breaker_name})
+    GenServer.call(process_name, {:remove, breaker_name})
   end
 
   @doc """
@@ -100,7 +100,7 @@ defmodule BreakerBox do
   @spec get_config(breaker_name :: term, process_name :: term) ::
           {:ok, BreakerConfiguration.t()} | {:error, :not_found}
   def get_config(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:get_config, breaker_name})
+    GenServer.call(process_name, {:get_config, breaker_name})
   end
 
   @doc """
@@ -109,7 +109,7 @@ defmodule BreakerBox do
   """
   @spec registered(process_name :: term) :: %{optional(term) => BreakerConfiguration.t()}
   def registered(process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, :registered)
+    GenServer.call(process_name, :registered)
   end
 
   @doc """
@@ -117,7 +117,7 @@ defmodule BreakerBox do
   """
   @spec status(breaker_name :: term, process_name :: term) :: fuse_status()
   def status(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:status, breaker_name})
+    GenServer.call(process_name, {:status, breaker_name})
   end
 
   @doc """
@@ -125,7 +125,7 @@ defmodule BreakerBox do
   """
   @spec all_statuses(process_name :: term) :: %{optional(term) => fuse_status()}
   def all_statuses(process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, :status)
+    GenServer.call(process_name, :status)
   end
 
   @doc """
@@ -135,7 +135,7 @@ defmodule BreakerBox do
   """
   @spec reset(breaker_name :: term, process_name :: term) :: ok_or_not_found()
   def reset(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:reset, breaker_name})
+    GenServer.call(process_name, {:reset, breaker_name})
   end
 
   @doc """
@@ -148,7 +148,7 @@ defmodule BreakerBox do
   """
   @spec disable(breaker_name :: term, process_name :: term) :: :ok
   def disable(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:disable, breaker_name})
+    GenServer.call(process_name, {:disable, breaker_name})
   end
 
   @doc """
@@ -158,7 +158,7 @@ defmodule BreakerBox do
   """
   @spec enable(breaker_name :: term, process_name :: term) :: :ok
   def enable(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:enable, breaker_name})
+    GenServer.call(process_name, {:enable, breaker_name})
   end
 
   @doc """
@@ -170,10 +170,17 @@ defmodule BreakerBox do
   """
   @spec increment_error(breaker_name :: term, process_name :: term) :: :ok
   def increment_error(breaker_name, process_name \\ __MODULE__) do
-    GenServer.call({:global, process_name}, {:increment_error, breaker_name})
+    GenServer.call(process_name, {:increment_error, breaker_name})
   end
 
   ### PRIVATE API
+  defp fully_qualified_breaker_name(breaker_name) do
+    self()
+    |> Process.info()
+    |> get_in([:registered_name])
+    |> Module.concat(breaker_name)
+  end
+
   def handle_call(
         {:register, breaker_name, %BreakerConfiguration{} = options},
         _from,
@@ -191,7 +198,9 @@ defmodule BreakerBox do
           not_found
 
         _ ->
-          Fuse.remove(breaker_name)
+          breaker_name
+          |> fully_qualified_breaker_name()
+          |> Fuse.remove()
       end
 
     {:reply, result, Map.delete(state, breaker_name)}
@@ -239,7 +248,9 @@ defmodule BreakerBox do
           not_found
 
         _ ->
-          Fuse.reset(breaker_name)
+          breaker_name
+          |> fully_qualified_breaker_name()
+          |> Fuse.reset()
       end
 
     {:reply, result, state}
@@ -252,7 +263,9 @@ defmodule BreakerBox do
           not_found
 
         _ ->
-          Fuse.circuit_disable(breaker_name)
+          breaker_name
+          |> fully_qualified_breaker_name()
+          |> Fuse.circuit_disable()
       end
 
     {:reply, result, state}
@@ -265,7 +278,9 @@ defmodule BreakerBox do
           not_found
 
         _ ->
-          Fuse.circuit_enable(breaker_name)
+          breaker_name
+          |> fully_qualified_breaker_name()
+          |> Fuse.circuit_enable()
       end
 
     {:reply, result, state}
@@ -278,7 +293,9 @@ defmodule BreakerBox do
           not_found
 
         _status ->
-          Fuse.melt(breaker_name)
+          breaker_name
+          |> fully_qualified_breaker_name()
+          |> Fuse.melt()
       end
 
     {:reply, result, state}
@@ -323,7 +340,10 @@ defmodule BreakerBox do
   defp register_breaker(breaker_name, %BreakerConfiguration{} = breaker_options, state) do
     fuse_options = BreakerConfiguration.to_fuse_options(breaker_options)
 
-    result = Fuse.install(breaker_name, fuse_options)
+    result =
+      breaker_name
+      |> fully_qualified_breaker_name()
+      |> Fuse.install(fuse_options)
 
     new_state = Map.put(state, breaker_name, breaker_options)
 
@@ -331,7 +351,9 @@ defmodule BreakerBox do
   end
 
   defp breaker_status(breaker_name) do
-    case Fuse.ask(breaker_name, :sync) do
+    fully_qualified_breaker_name = fully_qualified_breaker_name(breaker_name)
+
+    case Fuse.ask(fully_qualified_breaker_name, :sync) do
       :ok -> {:ok, breaker_name}
       :blown -> {:error, {:breaker_tripped, breaker_name}}
       {:error, :not_found} -> {:error, {:breaker_not_found, breaker_name}}

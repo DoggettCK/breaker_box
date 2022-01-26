@@ -99,7 +99,8 @@ defmodule BreakerBox.BreakerConfiguration do
   NOTE: Fuse insists on tolerating *at least* 1 error, so unfortunately it
   can't be configured to trip on the first error, and will use the default
   value of #{@default_max_failures} if a value less than or equal to 1 is used,
-  or a non-integer.
+  or a non-integer. If you set this manually, registering the breaker will fail
+  with an error `{:error, "BreakerBox: max_failures must be greater than 1"}`
   """
   @spec trip_on_failure_number(config :: BreakerConfiguration.t(), max_failures :: pos_integer) ::
           BreakerConfiguration.t()
