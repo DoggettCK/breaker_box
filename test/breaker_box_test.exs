@@ -140,13 +140,6 @@ defmodule BreakerBoxTest do
       assert {:error, {:breaker_not_found, @non_existent_breaker}} =
                BreakerBox.status(@non_existent_breaker)
     end
-
-    test "registering a breaker with max_failures less then 2 returns error" do
-      invalid_breaker_config = Map.put(@test_breaker_config, :max_failures, 1)
-
-      assert {:error, "BreakerBox: max_failures must be greater than 1"} =
-               BreakerBox.register(@non_existent_breaker, invalid_breaker_config)
-    end
   end
 
   describe "registered/0" do
@@ -330,6 +323,20 @@ defmodule BreakerBoxTest do
   end
 
   describe "increment_error/1" do
+    test "breaker can be configured to trip on first error" do
+      # With fuse 2.5.0, can now trip on first error, which wasn't previously possible.
+
+      {breaker_name, breaker_config} = StrictBreaker.registration()
+
+      single_failure_config = BreakerConfiguration.trip_on_failure_number(breaker_config, 1)
+
+      assert :ok = BreakerBox.register(breaker_name, single_failure_config)
+
+      assert {:ok, ^breaker_name} = BreakerBox.status(breaker_name)
+      assert :ok = BreakerBox.increment_error(breaker_name)
+      assert {:error, {:breaker_tripped, ^breaker_name}} = BreakerBox.status(breaker_name)
+    end
+
     test "trips a breaker if error limit is exceeded" do
       {breaker_name, %BreakerConfiguration{max_failures: failures} = breaker_config} =
         StrictBreaker.registration()

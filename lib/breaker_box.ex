@@ -73,10 +73,10 @@ defmodule BreakerBox do
           :ok | :reset | {:error, reason :: term}
   def register(breaker_name, breaker_options, process_name \\ __MODULE__)
 
-  def register(_breaker_name, %BreakerConfiguration{max_failures: max_failures}, _process_name)
-      when max_failures <= 1 do
-    {:error, "BreakerBox: max_failures must be greater than 1"}
-  end
+  # def register(_breaker_name, %BreakerConfiguration{max_failures: max_failures}, _process_name)
+  # when max_failures <= 1 do
+  # {:error, "BreakerBox: max_failures must be greater than 1"}
+  # end
 
   def register(
         breaker_name,
