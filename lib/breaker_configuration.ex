@@ -21,9 +21,9 @@ defmodule BreakerBox.BreakerConfiguration do
 
   ## Defaults
   | **Field** | **Value** |
-  | max_failures | 5 |
-  | failure_window | 1_000 |
-  | reset_window | 5_000 |
+  | max_failures | #{@default_max_failures} |
+  | failure_window | #{@default_failure_window} |
+  | reset_window | #{@default_reset_window} |
   """
   @type t() :: %__MODULE__{
           max_failures: pos_integer(),
@@ -83,7 +83,7 @@ defmodule BreakerBox.BreakerConfiguration do
           {{:standard, pos_integer, pos_integer}, {:reset, pos_integer}}
   def to_fuse_options(%BreakerConfiguration{} = config) do
     {
-      {:standard, max(config.max_failures - 1, 1), config.failure_window},
+      {:standard, max(config.max_failures - 1, 0), config.failure_window},
       {:reset, config.reset_window}
     }
   end
@@ -95,17 +95,11 @@ defmodule BreakerBox.BreakerConfiguration do
   The underlying Fuse library *tolerates* N failures before tripping the
   breaker on failure N+1. We've gone with the more user-friendly behaviour of
   having it trip *after* N errors by telling Fuse to tolerate N-1 errors.
-
-  NOTE: Fuse insists on tolerating *at least* 1 error, so unfortunately it
-  can't be configured to trip on the first error, and will use the default
-  value of #{@default_max_failures} if a value less than or equal to 1 is used,
-  or a non-integer. If you set this manually, registering the breaker will fail
-  with an error `{:error, "BreakerBox: max_failures must be greater than 1"}`
   """
   @spec trip_on_failure_number(config :: BreakerConfiguration.t(), max_failures :: pos_integer) ::
           BreakerConfiguration.t()
   def trip_on_failure_number(%BreakerConfiguration{} = config, max_failures)
-      when is_positive_integer(max_failures) and max_failures > 1 do
+      when is_positive_integer(max_failures) do
     %BreakerConfiguration{config | max_failures: max_failures}
   end
 
