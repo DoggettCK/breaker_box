@@ -31,8 +31,6 @@ Both `within_*` and `after_*` methods have variants accepting minutes, seconds, 
 
 A default `%BreakerBox.BreakerConfiguration{}` will trip on the 5th failure within 1 second, automatically resetting to untripped after 5 seconds.
 
-Due to a limitation of the underlying Fuse library, BreakerBox is unable to trip on the first error, so any calls to `trip_on_failure_number/2` must fail on at least the second error.
-
 ### Registering a breaker manually
 ```elixir
 BreakerBox.register("BreakerName", breaker_config)
