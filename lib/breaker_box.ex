@@ -10,7 +10,6 @@ defmodule BreakerBox do
   """
   use GenServer
 
-  require Behave
   require Logger
 
   alias :fuse, as: Fuse
@@ -317,14 +316,14 @@ defmodule BreakerBox do
       {:error, :not_a_module, ^breaker_module} ->
         breaker_module
         |> non_module_warning
-        |> Logger.warn()
+        |> Logger.warning()
 
         state
 
       {:error, :behaviour_not_implemented} ->
         breaker_module
         |> missing_behaviour_warning
-        |> Logger.warn()
+        |> Logger.warning()
 
         state
 

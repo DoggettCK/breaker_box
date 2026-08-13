@@ -239,9 +239,7 @@ defmodule BreakerBox.BreakerConfiguration do
       reset_window: reset_window
     } = configuration
 
-    "Trip on #{ordinalize(max_failures)} error within #{failure_window}ms, resetting after #{
-      reset_window
-    }ms."
+    "Trip on #{ordinalize(max_failures)} error within #{failure_window}ms, resetting after #{reset_window}ms."
   end
 
   defp ordinalize(number) when is_integer(number) and number >= 0 do
